@@ -7,6 +7,7 @@ library(leaflet.extras)
 library(sf)
 library(DT)
 library(shinyDataFilter)
+library(plotly)
 
 shinyUI(
   tagList(
@@ -78,9 +79,9 @@ shinyUI(
                ),
                mainPanel(
                  tabsetPanel(
-                   tabPanel("Demographics"),
-                   tabPanel("Action Taken"),
-                   tabPanel("Loan Amounts", plotOutput("plot_2")),
+                   tabPanel("Demographics", plotlyOutput("plot_4")),
+                   tabPanel("Action Taken", plotlyOutput("plot_3")),
+                   tabPanel("Loan Amounts", plotlyOutput("plot_2")),
                    tabPanel("Denial Reasons"),
                  ),
                  width = 6

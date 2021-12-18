@@ -7,6 +7,7 @@ library(leaflet.extras)
 library(sf)
 library(DT)
 library(shinyDataFilter)
+library(plotly)
 
 shinyServer(function(input, output) {
   
@@ -61,17 +62,50 @@ shinyServer(function(input, output) {
     data = hmda_data,
     verbose = FALSE)
   
-  output$plot_1 <- renderPlot({
+  output$plot_1 <- renderPlotly({
     filtered_data_1() %>%
       ggplot(aes(x = `Loan Amount`)) +
       geom_histogram()
   })
   
-  output$plot_2 <- renderPlot({
-    ggplot() +
+  output$plot_2 <- renderPlotly({
+    p2 <- ggplot() +
       geom_boxplot(data = filtered_data_1(), aes(x = "Group 1", y = `Loan Amount`, color = "Group 1")) +
       geom_boxplot(data = filtered_data_2(), aes(x = "Group 2", y = `Loan Amount`, color = "Group 2")) +
       scale_y_log10()
+    
+    ggplotly(p2)
+  })
+  
+  output$plot_3 <- renderPlotly({
+    filtered_data_12 <- rbind(filtered_data_1() %>% mutate(Group = "Group 1"),
+                             filtered_data_2() %>% mutate(Group = "Group 2"))
+    
+    p3 <- ggplot() +
+      geom_bar(data = filtered_data_12, aes(y = `Action Taken`, fill = `Group`), position = 'dodge') +
+      scale_y_discrete(limits = rev)
+      #geom_bar(data = filtered_data_2(), aes(x = "Group 2", fill = `Action Taken`), position = 'dodge')
+    
+    ggplotly(p3)
+  })
+  
+  output$plot_4 <- renderPlotly({
+    filtered_data_1_long <- filtered_data_1() %>%
+                              pivot_longer(cols = c(`Derived Race`, `Derived Ethnicity`, `Derived Sex`, `Applicant Age`), 
+                                           names_to = "Demographic Type",
+                                           values_to = "Demographic Value")
+    
+    filtered_data_2_long <- filtered_data_2() %>%
+                              pivot_longer(cols = c(`Derived Race`, `Derived Ethnicity`, `Derived Sex`, `Applicant Age`), 
+                                           names_to = "Demographic Type",
+                                           values_to = "Demographic Value")
+    
+    p4 <- ggplot() +
+      geom_bar(data = filtered_data_1_long, aes(x = "Group 1", fill = `Demographic Value`), position = 'fill') +
+      geom_bar(data = filtered_data_2_long, aes(x = "Group 2", fill = `Demographic Value`), position = 'fill') +
+      facet_wrap(~`Demographic Type`, ncol = 1)
+    
+    ggplotly(p4, height = 800)
   })
 
   output$data_table <- renderDT(
