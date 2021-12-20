@@ -8,6 +8,7 @@ library(sf)
 library(DT)
 library(shinyDataFilter)
 library(plotly)
+library(patchwork)
 
 shinyServer(function(input, output) {
   
@@ -68,7 +69,7 @@ shinyServer(function(input, output) {
       geom_histogram()
   })
   
-  output$plot_2 <- renderPlotly({
+  output$plot_amounts <- renderPlotly({
     p2 <- ggplot() +
       geom_boxplot(data = filtered_data_1(), aes(x = "Group 1", y = `Loan Amount`, color = "Group 1")) +
       geom_boxplot(data = filtered_data_2(), aes(x = "Group 2", y = `Loan Amount`, color = "Group 2")) +
@@ -77,7 +78,7 @@ shinyServer(function(input, output) {
     ggplotly(p2)
   })
   
-  output$plot_3 <- renderPlotly({
+  output$plot_action <- renderPlotly({
     filtered_data_12 <- rbind(filtered_data_1() %>% mutate(Group = "Group 1"),
                              filtered_data_2() %>% mutate(Group = "Group 2"))
     
@@ -90,22 +91,92 @@ shinyServer(function(input, output) {
   })
   
   output$plot_4 <- renderPlotly({
-    filtered_data_1_long <- filtered_data_1() %>%
-                              pivot_longer(cols = c(`Derived Race`, `Derived Ethnicity`, `Derived Sex`, `Applicant Age`), 
-                                           names_to = "Demographic Type",
-                                           values_to = "Demographic Value")
     
-    filtered_data_2_long <- filtered_data_2() %>%
-                              pivot_longer(cols = c(`Derived Race`, `Derived Ethnicity`, `Derived Sex`, `Applicant Age`), 
-                                           names_to = "Demographic Type",
-                                           values_to = "Demographic Value")
+    # filtered_data_12 <- rbind(filtered_data_1() %>% mutate(Group = "Group 1"),
+    #                           filtered_data_2() %>% mutate(Group = "Group 2"))
     
-    p4 <- ggplot() +
-      geom_bar(data = filtered_data_1_long, aes(x = "Group 1", fill = `Demographic Value`), position = 'fill') +
-      geom_bar(data = filtered_data_2_long, aes(x = "Group 2", fill = `Demographic Value`), position = 'fill') +
-      facet_wrap(~`Demographic Type`, ncol = 1)
+    #This first set of code creates a facet with one long legend
+    # filtered_data_12_long <- filtered_data_12 %>%
+    #                           pivot_longer(cols = c(`Derived Race`, `Derived Ethnicity`, `Derived Sex`, `Applicant Age`),
+    #                                        names_to = "Demographic Type",
+    #                                        values_to = "Demographic Value")
+
+
+    # p4 <- ggplot() +
+    #   geom_bar(data = filtered_data_12_long, aes(x = `Demographic Value`, fill = Group), position = 'dodge') +
+    #   facet_wrap(~`Demographic Type`, ncol = 1)
+    # 
+    # ggplotly(p4, height = 760)
     
-    ggplotly(p4, height = 800)
+    # Let's use patchwork to make four separate plots (with their own legends) that then get patched together
+    filtered_data_12 <- rbind(filtered_data_1() %>% mutate(Group = "Group 1"),
+                              filtered_data_2() %>% mutate(Group = "Group 2"))
+    
+    ## Make each separate plot
+    p4race <- ggplot() +
+            geom_bar(data = filtered_data_12, aes(x = `Derived Race`, fill = `Group`), position = 'dodge')
+    figr <- ggplotly(p4race)
+
+    p4ethnicity <- ggplot() +
+            geom_bar(data = filtered_data_12, aes(x = `Derived Ethnicity`, fill = `Group`), position = 'dodge') +
+            scale_fill_discrete(breaks = "none")
+    fige <- ggplotly(p4ethnicity, showlegend = FALSE)
+
+
+    p4sex <- ggplot() +
+            geom_bar(data = filtered_data_12, aes(x = `Derived Sex`, fill = `Group`), position = 'dodge') +
+            scale_fill_discrete(breaks = "none")
+    figs <- ggplotly(p4sex)
+
+
+    p4age <- ggplot() +
+            geom_bar(data = filtered_data_12, aes(x = `Applicant Age`, fill = `Group`), position = 'dodge') +
+            scale_fill_discrete(breaks = "none")
+    figa <- ggplotly(p4age)
+    
+    
+    ## Patch them together vertically
+    subplot(figr, fige, figs, figa, nrows = 4) %>% layout(height = 760)
+    
+  })
+  
+  output$plot_race <- renderPlotly({
+    filtered_data_12 <- rbind(filtered_data_1() %>% mutate(Group = "Group 1"),
+                              filtered_data_2() %>% mutate(Group = "Group 2"))
+    
+    p4race <- ggplot() +
+      geom_bar(data = filtered_data_12, aes(x = Race, fill = `Group`), position = 'dodge')
+    figr <- ggplotly(p4race) %>% layout(legend = list(orientation = "h", xanchor = "right", yanchor = "top", x = 1, y = 1))
+  })
+  
+  output$plot_ethnicity <- renderPlotly({
+    filtered_data_12 <- rbind(filtered_data_1() %>% mutate(Group = "Group 1"),
+                              filtered_data_2() %>% mutate(Group = "Group 2"))
+    
+    p4ethnicity <- ggplot() +
+      geom_bar(data = filtered_data_12, aes(x = Ethnicity, fill = `Group`), position = 'dodge') +
+      theme(legend.position = "none")
+    figr <- ggplotly(p4ethnicity)
+  })
+  
+  output$plot_sex <- renderPlotly({
+    filtered_data_12 <- rbind(filtered_data_1() %>% mutate(Group = "Group 1"),
+                              filtered_data_2() %>% mutate(Group = "Group 2"))
+    
+    p4sex <- ggplot() +
+      geom_bar(data = filtered_data_12, aes(x = Sex, fill = `Group`), position = 'dodge') +
+      theme(legend.position = "none")
+    figr <- ggplotly(p4sex)
+  })
+  
+  output$plot_age <- renderPlotly({
+    filtered_data_12 <- rbind(filtered_data_1() %>% mutate(Group = "Group 1"),
+                              filtered_data_2() %>% mutate(Group = "Group 2"))
+    
+    p4age <- ggplot() +
+      geom_bar(data = filtered_data_12, aes(x = Age, fill = `Group`), position = 'dodge') +
+      theme(legend.position = "none")
+    figr <- ggplotly(p4age)
   })
 
   output$data_table <- renderDT(

@@ -79,9 +79,14 @@ shinyUI(
                ),
                mainPanel(
                  tabsetPanel(
-                   tabPanel("Demographics", plotlyOutput("plot_4")),
-                   tabPanel("Action Taken", plotlyOutput("plot_3")),
-                   tabPanel("Loan Amounts", plotlyOutput("plot_2")),
+                   tabPanel("Demographics", fluidRow(plotlyOutput("plot_race", height = "500px"), 
+                                                     plotlyOutput("plot_ethnicity", height = "500px"),
+                                                     plotlyOutput("plot_sex", height = "500px"),
+                                                     plotlyOutput("plot_age", height = "500px"),
+                                                     )
+                            ),
+                   tabPanel("Action Taken", plotlyOutput("plot_action")),
+                   tabPanel("Loan Amounts", plotlyOutput("plot_amounts")),
                    tabPanel("Denial Reasons"),
                  ),
                  width = 6
