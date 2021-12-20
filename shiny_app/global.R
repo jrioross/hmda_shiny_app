@@ -15,14 +15,14 @@ library(leafpop)
 census_data <- as.tibble(readRDS("data/census_data.rds"))
 
 # Read in HMDA data
-hmda_data <- readRDS("data/hmda_data_filtered.rds")
+hmda_data <- readRDS("data/hmda_data_filtered.rds") 
 
 # Include column of each lender's annual amount lent for the given activity year
 hmda_data <- hmda_data %>%
   inner_join(hmda_data %>% 
                group_by(`Institution Name`, Year) %>% 
                summarize(`Annual Money Lent` = sum(`Loan Amount`))
-)
+  )
 
 # Initialize leaflet map function
 draw_base_map <- function() {
