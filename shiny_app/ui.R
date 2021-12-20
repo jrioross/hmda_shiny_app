@@ -8,6 +8,8 @@ library(sf)
 library(DT)
 library(shinyDataFilter)
 library(plotly)
+library(patchwork)
+library(leafpop)
 
 shinyUI(
   tagList(
@@ -39,6 +41,9 @@ shinyUI(
                  '.page-footer {color: #999A9E}'
       ),
       
+      # Window title
+      windowTitle = "HMDA Audit Tool | Hauser Jones & Sas",
+      
       # Title image
       title = img(src = "hjs-logo.svg", 
                   style = 'margin-top: 0px', 
@@ -64,7 +69,7 @@ shinyUI(
                        bottom = "auto",
                        width = "25%", 
                        height = "auto",
-                       shiny_data_filter_ui("data_filter_4")
+                       shiny_data_filter_ui("visualize_filter")
                      )
                   )
                )  
@@ -74,7 +79,7 @@ shinyUI(
       tabPanel(h4("Compare"),
                sidebarPanel(
                  p(strong("Group 1"), style = "text-align: center;"),
-                 shiny_data_filter_ui("data_filter_1"),
+                 shiny_data_filter_ui("compare_filter_1"),
                  width = 3
                ),
                mainPanel(
@@ -82,9 +87,9 @@ shinyUI(
                    tabPanel("Demographics", fluidRow(plotlyOutput("plot_race", height = "500px"), 
                                                      plotlyOutput("plot_ethnicity", height = "500px"),
                                                      plotlyOutput("plot_sex", height = "500px"),
-                                                     plotlyOutput("plot_age", height = "500px"),
+                                                     plotlyOutput("plot_age", height = "500px")
                                                      )
-                            ),
+                   ),
                    tabPanel("Action Taken", plotlyOutput("plot_action")),
                    tabPanel("Loan Amounts", plotlyOutput("plot_amounts")),
                    tabPanel("Denial Reasons"),
@@ -93,7 +98,7 @@ shinyUI(
                ),
                sidebarPanel(
                  p(strong("Group 2"), style = "text-align: center;"),
-                 shiny_data_filter_ui("data_filter_2"),
+                 shiny_data_filter_ui("compare_filter_2"),
                  width = 3
                )
       ),
@@ -102,7 +107,7 @@ shinyUI(
       tabPanel(h4("Export"),
                sidebarLayout(
                  sidebarPanel(
-                   shiny_data_filter_ui("data_filter_3"),
+                   shiny_data_filter_ui("export_filter"),
                    div(class = 'text-center', downloadButton('download', 'Download')),
                    width = 3
                  ),
@@ -111,10 +116,7 @@ shinyUI(
                    width = 9
                  )
                )
-      ),
-      
-      # About tab
-      tabPanel(h4("About"))
+      )
     ),
   
     # Footer
