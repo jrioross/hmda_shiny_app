@@ -84,10 +84,10 @@ shinyUI(
                ),
                mainPanel(
                  tabsetPanel(
-                   tabPanel("Demographics", fluidRow(plotlyOutput("plot_race", height = "500px"), 
-                                                     plotlyOutput("plot_ethnicity", height = "500px"),
-                                                     plotlyOutput("plot_sex", height = "500px"),
-                                                     plotlyOutput("plot_age", height = "500px")
+                   tabPanel("Demographics", fluidRow(plotlyOutput("plot_race", height = "200px"), 
+                                                     plotlyOutput("plot_ethnicity", height = "200px"),
+                                                     plotlyOutput("plot_sex", height = "200px"),
+                                                     plotlyOutput("plot_age", height = "200px")
                                                      )
                    ),
                    tabPanel("Action Taken", plotlyOutput("plot_action")),

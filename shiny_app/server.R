@@ -10,6 +10,7 @@ library(shinyDataFilter)
 library(plotly)
 library(patchwork)
 library(leafpop)
+library(stringr)
 
 shinyServer(function(input, output) {
   
@@ -75,110 +76,143 @@ shinyServer(function(input, output) {
   output$plot_amounts <- renderPlotly({
     p2 <- ggplot() +
       geom_boxplot(data = compare_filter_1(), aes(x = "Group 1", y = `Loan Amount`, color = "Group 1")) +
-      geom_boxplot(data = compare_filter_2(), aes(x = "Group 2", y = `Loan Amount`, color = "Group 2")) +
-      scale_y_log10()
+      geom_boxplot(data = compare_filter_2() %>% setdiff(compare_filter_1()), aes(x = "Group 2", y = `Loan Amount`, color = "Group 2")) +
+      scale_y_log10() +
+      labs(title = "Boxplot of Comparison Group Loan Amounts",
+           x = "Comparison Group")
     
     ggplotly(p2)
   })
   
   output$plot_action <- renderPlotly({
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
     
-    p3 <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(y = `Action Taken`, fill = `Group`), position = 'dodge') +
-      scale_y_discrete(limits = rev)
-    #geom_bar(data = compare_filter_2(), aes(x = "Group 2", fill = `Action Taken`), position = 'dodge')
+    data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                  compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
+      count(Group, `Action Taken`) %>%
+      group_by(Group) %>%
+      mutate(Proportion = n/sum(n))
     
-    ggplotly(p3)
-  })
-  
-  output$plot_4 <- renderPlotly({
+    p <- ggplot(data = data, aes(x = str_wrap(`Action Taken`, width = 12), 
+                                 y = Proportion, 
+                                 fill = Group, 
+                                 text = sprintf("Group: %s<br>Action Taken: %s<br>Percent: %s",
+                                                Group, 
+                                                `Action Taken`, 
+                                                scales::percent(Proportion, scale = 100, accuracy = 0.01)
+                                                )
+                                 )
+                )+
+      geom_col(position = 'dodge')+
+      scale_y_continuous(labels = scales::percent) +
+      theme(legend.position = "right") +
+      labs(title = "Proportion of Action Taken by Comparison Group",
+           x = "Action Taken")
     
-    # compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-    #                            compare_filter_2() %>% mutate(Group = "Group 2"))
-    
-    #This first set of code creates a facet with one long legend
-    # compare_filter_12_long <- compare_filter_12 %>%
-    #                           pivot_longer(cols = c(`Derived Race`, `Derived Ethnicity`, `Derived Sex`, `Applicant Age`),
-    #                                        names_to = "Demographic Type",
-    #                                        values_to = "Demographic Value")
-    
-    
-    # p4 <- ggplot() +
-    #   geom_bar(data = compare_filter_12_long, aes(x = `Demographic Value`, fill = Group), position = 'dodge') +
-    #   facet_wrap(~`Demographic Type`, ncol = 1)
-    # 
-    # ggplotly(p4, height = 760)
-    
-    # Let's use patchwork to make four separate plots (with their own legends) that then get patched together
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
-    
-    ## Make each separate plot
-    p4race <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = `Derived Race`, fill = `Group`), position = 'dodge')
-    figr <- ggplotly(p4race)
-    
-    p4ethnicity <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = `Derived Ethnicity`, fill = `Group`), position = 'dodge') +
-      scale_fill_discrete(breaks = "none")
-    fige <- ggplotly(p4ethnicity, showlegend = FALSE)
-    
-    
-    p4sex <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = `Derived Sex`, fill = `Group`), position = 'dodge') +
-      scale_fill_discrete(breaks = "none")
-    figs <- ggplotly(p4sex)
-    
-    
-    p4age <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = `Applicant Age`, fill = `Group`), position = 'dodge') +
-      scale_fill_discrete(breaks = "none")
-    figa <- ggplotly(p4age)
-    
-    
-    ## Patch them together vertically
-    subplot(figr, fige, figs, figa, nrows = 4) %>% layout(height = 760)
+    ggplotly(p, height = 600, tooltip = 'text')
   })
   
   output$plot_race <- renderPlotly({
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
     
-    p4race <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = Race, fill = `Group`), position = 'dodge')
-    figr <- ggplotly(p4race) %>% layout(legend = list(orientation = "h", xanchor = "right", yanchor = "top", x = 1, y = 1))
+    data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                  compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
+      filter(Race != "Free Form Text Only") %>%
+      count(Group, Race) %>%
+      group_by(Group) %>%
+      mutate(Proportion = n/sum(n))
+    
+    p <- ggplot(data = data, aes(x = str_wrap(Race, width = 17), 
+                                 y = Proportion, 
+                                 fill = Group,
+                                 text = sprintf("Group: %s<br>Race: %s<br>Percent: %s",
+                                                Group, 
+                                                Race, 
+                                                scales::percent(Proportion, scale = 100, accuracy = 0.01)
+                                                )
+                                 )
+                ) +
+      geom_col(position = 'dodge') +
+      scale_x_discrete(limits = rev) +
+      scale_y_continuous(labels = scales::percent) +
+      labs(title = "Proportion of Applicant Race by Comparison Group",
+           x = "Race")
+    figr <- ggplotly(p, tooltip = 'text') %>% layout(legend = list(orientation = "h", xanchor = "right", yanchor = "top", x = 1, y = 1))
   })
   
   output$plot_ethnicity <- renderPlotly({
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
     
-    p4ethnicity <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = Ethnicity, fill = `Group`), position = 'dodge') +
-      theme(legend.position = "none")
-    figr <- ggplotly(p4ethnicity)
+    data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                  compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
+      filter(Ethnicity != "Free Form Text Only") %>%
+      count(Group, Ethnicity) %>%
+      group_by(Group) %>%
+      mutate(Proportion = n/sum(n))
+    
+    p <- ggplot(data = data, aes(x = Ethnicity, 
+                                 y = Proportion, 
+                                 fill = Group,
+                                 text = sprintf("Group: %s<br>Ethnicity: %s<br>Percent: %s",
+                                                Group, 
+                                                Ethnicity, 
+                                                scales::percent(Proportion, scale = 100, accuracy = 0.01)
+                                                )
+                                 )
+                ) +
+      geom_col(position = 'dodge') +
+      scale_x_discrete(limits = rev) +
+      scale_y_continuous(labels = scales::percent) +
+      theme(legend.position = "none") +
+      labs(title = "Proportion of Applicant Ethnicity by Comparison Group")
+    fige <- ggplotly(p, tooltip = 'text')
   })
   
   output$plot_sex <- renderPlotly({
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
     
-    p4sex <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = Sex, fill = `Group`), position = 'dodge') +
-      theme(legend.position = "none")
-    figr <- ggplotly(p4sex)
+    data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                  compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
+      count(Group, Sex) %>%
+      group_by(Group) %>%
+      mutate(Proportion = n/sum(n))
+    
+    p <- ggplot(data = data, aes(x = Sex, 
+                                 y = Proportion, 
+                                 fill = Group,
+                                 text = sprintf("Group: %s<br>Sex: %s<br>Percent: %s",
+                                                Group, 
+                                                Sex, 
+                                                scales::percent(Proportion, scale = 100, accuracy = 0.01)
+                                                )
+                                 )
+                ) +
+      geom_col(position = 'dodge') +
+      scale_y_continuous(labels = scales::percent) +
+      theme(legend.position = "none") +
+      labs(title = "Proportion of Applicant Sex by Comparison Group")
+    figs <- ggplotly(p, tooltip = 'text')
   })
   
   output$plot_age <- renderPlotly({
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
     
-    p4age <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = `Applicant Age`, fill = `Group`), position = 'dodge') +
-      theme(legend.position = "none")
-    figr <- ggplotly(p4age)
+    data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                  compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
+      count(Group, `Applicant Age`) %>%
+      group_by(Group) %>%
+      mutate(Proportion = n/sum(n))
+    
+    p <- ggplot(data = data, aes(x = `Applicant Age`, 
+                                 y = Proportion, 
+                                 fill = Group,
+                                 text = sprintf("Group: %s<br>Applicant Age: %s<br>Percent: %s",
+                                                Group, 
+                                                `Applicant Age`, 
+                                                scales::percent(Proportion, scale = 100, accuracy = 0.01)
+                                                )
+                                 )
+                ) +
+      geom_col(position = 'dodge') +
+      scale_y_continuous(labels = scales::percent) +
+      theme(legend.position = "none") +
+      labs(title = "Proportion of Applicant Age by Comparison Group")
+    figa <- ggplotly(p, tooltip = 'text')
   })
   
   ### EXPORT TAB ###
