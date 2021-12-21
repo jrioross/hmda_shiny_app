@@ -76,7 +76,7 @@ shinyServer(function(input, output) {
   output$plot_amounts <- renderPlotly({
     p2 <- ggplot() +
       geom_boxplot(data = compare_filter_1(), aes(x = "Group 1", y = `Loan Amount`, color = "Group 1")) +
-      geom_boxplot(data = compare_filter_2(), aes(x = "Group 2", y = `Loan Amount`, color = "Group 2")) +
+      geom_boxplot(data = compare_filter_2() %>% setdiff(compare_filter_1()), aes(x = "Group 2", y = `Loan Amount`, color = "Group 2")) +
       scale_y_log10() +
       labs(title = "Boxplot of Comparison Group Loan Amounts",
            x = "Comparison Group")
@@ -87,7 +87,7 @@ shinyServer(function(input, output) {
   output$plot_action <- renderPlotly({
     
     data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                  compare_filter_2() %>% mutate(Group = "Group 2")) %>%
+                  compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
       count(Group, `Action Taken`) %>%
       group_by(Group) %>%
       mutate(Proportion = n/sum(n))
@@ -141,7 +141,7 @@ shinyServer(function(input, output) {
   output$plot_ethnicity <- renderPlotly({
     
     data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                  compare_filter_2() %>% mutate(Group = "Group 2")) %>%
+                  compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
       filter(Ethnicity != "Free Form Text Only") %>%
       count(Group, Ethnicity) %>%
       group_by(Group) %>%
@@ -168,7 +168,7 @@ shinyServer(function(input, output) {
   output$plot_sex <- renderPlotly({
     
     data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                  compare_filter_2() %>% mutate(Group = "Group 2")) %>%
+                  compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
       count(Group, Sex) %>%
       group_by(Group) %>%
       mutate(Proportion = n/sum(n))
@@ -193,7 +193,7 @@ shinyServer(function(input, output) {
   output$plot_age <- renderPlotly({
     
     data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                  compare_filter_2() %>% mutate(Group = "Group 2")) %>%
+                  compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
       count(Group, `Applicant Age`) %>%
       group_by(Group) %>%
       mutate(Proportion = n/sum(n))
