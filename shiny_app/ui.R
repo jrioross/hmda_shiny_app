@@ -9,7 +9,7 @@ library(DT)
 library(shinyDataFilter)
 library(plotly)
 library(patchwork)
-library(leafpop)
+library(shinycssloaders)
 
 shinyUI(
   tagList(
@@ -56,6 +56,13 @@ shinyUI(
                      includeCSS("www/styles.css")
                    ),
                    leafletOutput("mymap", width = "100%", height = "100%"),
+                   absolutePanel(top = 10, 
+                                 right = 10,
+                                 selectInput("chor_vars", 
+                                             "Choropleth Input", 
+                                             c(choro_variables)
+                                 )
+                   ),
                    useShinyjs(),
                    hidden(
                      absolutePanel(
@@ -83,12 +90,22 @@ shinyUI(
                  width = 3
                ),
                mainPanel(
+                 fluidRow(
+                   actionButton(
+                     inputId = "go",
+                     label = "Compare Groups",
+                     style = "color: #FFFFFF; background-color: #0A3254; border-color: #FFFFFF;"
+                   ),
+                   align = "center",
+                   style = 'padding:10px;'
+                 ),
                  tabsetPanel(
-                   tabPanel("Demographics", fluidRow(plotlyOutput("plot_race", height = "200px"), 
-                                                     plotlyOutput("plot_ethnicity", height = "200px"),
-                                                     plotlyOutput("plot_sex", height = "200px"),
-                                                     plotlyOutput("plot_age", height = "200px")
-                                                     )
+                   tabPanel("Demographics",
+                            fluidRow(plotlyOutput("plot_race", height = "200px"), 
+                                     plotlyOutput("plot_ethnicity", height = "200px"),
+                                     plotlyOutput("plot_sex", height = "200px"),
+                                     plotlyOutput("plot_age", height = "200px")
+                            )
                    ),
                    tabPanel("Action Taken", plotlyOutput("plot_action")),
                    tabPanel("Loan Amounts", plotlyOutput("plot_amounts")),
