@@ -43,3 +43,5 @@ vignettes/*.pdf
 
 # Data
 /data
+data/
+shiny_app/data

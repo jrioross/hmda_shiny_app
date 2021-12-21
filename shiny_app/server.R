@@ -11,6 +11,7 @@ library(plotly)
 library(patchwork)
 library(leafpop)
 library(shinycssloaders)
+library(stringr)
 
 shinyServer(function(input, output) {
   
