@@ -9,7 +9,6 @@ library(DT)
 library(shinyDataFilter)
 library(plotly)
 library(patchwork)
-library(leafpop)
 library(shinycssloaders)
 
 shinyUI(
@@ -57,6 +56,13 @@ shinyUI(
                      includeCSS("www/styles.css")
                    ),
                    leafletOutput("mymap", width = "100%", height = "100%"),
+                   absolutePanel(top = 10, 
+                                 right = 10,
+                                 selectInput("chor_vars", 
+                                             "Choropleth Input", 
+                                             c(choro_variables)
+                                 )
+                   ),
                    useShinyjs(),
                    hidden(
                      absolutePanel(
@@ -95,11 +101,11 @@ shinyUI(
                  ),
                  tabsetPanel(
                    tabPanel("Demographics",
-                            fluidRow(plotlyOutput("plot_race", height = "500px"),
-                                     plotlyOutput("plot_ethnicity", height = "500px"),
-                                     plotlyOutput("plot_sex", height = "500px"),
-                                     plotlyOutput("plot_age", height = "500px")
-                                     )
+                            fluidRow(plotlyOutput("plot_race", height = "200px"), 
+                                     plotlyOutput("plot_ethnicity", height = "200px"),
+                                     plotlyOutput("plot_sex", height = "200px"),
+                                     plotlyOutput("plot_age", height = "200px")
+                            )
                    ),
                    tabPanel("Action Taken", plotlyOutput("plot_action")),
                    tabPanel("Loan Amounts", plotlyOutput("plot_amounts")),
