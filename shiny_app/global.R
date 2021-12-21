@@ -10,12 +10,13 @@ library(shinyDataFilter)
 library(plotly)
 library(patchwork)
 library(leafpop)
+library(shinycssloaders)
 
 # Read in census data
 census_data <- as.tibble(readRDS("data/census_data.rds"))
 
 # Read in HMDA data
-hmda_data <- readRDS("data/hmda_data_filtered.rds") 
+hmda_data <- readRDS("data/hmda_data_filtered.rds")
 
 # Include column of each lender's annual amount lent for the given activity year
 hmda_data <- hmda_data %>%
@@ -57,6 +58,7 @@ update_choropleth <- function(mymap, census_data) {
     clearShapes() %>%
     addPolygons(
       data = census_data$geometry,
+      layerId = census_data$NAME,
       group = "name",
       stroke = TRUE,
       weight = 1,

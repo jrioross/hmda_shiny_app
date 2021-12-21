@@ -10,6 +10,7 @@ library(shinyDataFilter)
 library(plotly)
 library(patchwork)
 library(leafpop)
+library(shinycssloaders)
 
 shinyUI(
   tagList(
@@ -83,12 +84,22 @@ shinyUI(
                  width = 3
                ),
                mainPanel(
+                 fluidRow(
+                   actionButton(
+                     inputId = "go",
+                     label = "Compare Groups",
+                     style = "color: #FFFFFF; background-color: #0A3254; border-color: #FFFFFF;"
+                   ),
+                   align = "center",
+                   style = 'padding:10px;'
+                 ),
                  tabsetPanel(
-                   tabPanel("Demographics", fluidRow(plotlyOutput("plot_race", height = "500px"), 
-                                                     plotlyOutput("plot_ethnicity", height = "500px"),
-                                                     plotlyOutput("plot_sex", height = "500px"),
-                                                     plotlyOutput("plot_age", height = "500px")
-                                                     )
+                   tabPanel("Demographics",
+                            fluidRow(plotlyOutput("plot_race", height = "500px"),
+                                     plotlyOutput("plot_ethnicity", height = "500px"),
+                                     plotlyOutput("plot_sex", height = "500px"),
+                                     plotlyOutput("plot_age", height = "500px")
+                                     )
                    ),
                    tabPanel("Action Taken", plotlyOutput("plot_action")),
                    tabPanel("Loan Amounts", plotlyOutput("plot_amounts")),

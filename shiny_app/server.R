@@ -10,6 +10,7 @@ library(shinyDataFilter)
 library(plotly)
 library(patchwork)
 library(leafpop)
+library(shinycssloaders)
 
 shinyServer(function(input, output) {
   
@@ -56,6 +57,24 @@ shinyServer(function(input, output) {
     toggle('filterPanel')
   })
   
+  observeEvent(input$mymap_shape_click, { 
+    showModal(modalDialog(
+      plotOutput("plot"),
+      title = input$mymap_shape_click[1],
+      fade = F,
+      easyClose = T,
+      footer = NULL
+    ))
+  })
+  
+  output$plot <- renderPlot({
+    census_data %>%
+      filter(NAME == input$mymap_shape_click[1]) %>%
+      select(NAME, white, black, `american indian`, asian, `pacific islander`, `other race`, `two or more races`) %>%
+      pivot_longer(!NAME, names_to = "Race", values_to = "Population") %>%
+      ggplot() + geom_col(aes(x = Race, y = Population))
+  })
+  
   ### COMPARE TAB ###
   
   # HMDA data filter 1 for compare tab
@@ -72,115 +91,120 @@ shinyServer(function(input, output) {
     data = hmda_data,
     verbose = FALSE)
   
-  output$plot_amounts <- renderPlotly({
-    p2 <- ggplot() +
-      geom_boxplot(data = compare_filter_1(), aes(x = "Group 1", y = `Loan Amount`, color = "Group 1")) +
-      geom_boxplot(data = compare_filter_2(), aes(x = "Group 2", y = `Loan Amount`, color = "Group 2")) +
-      scale_y_log10()
+  observeEvent(input$go, {
     
-    ggplotly(p2)
+    output$plot_amounts <- renderPlotly({
+      isolate(
+      p2 <- ggplot() +
+        geom_boxplot(data = compare_filter_1(), aes(x = "Group 1", y = `Loan Amount`, color = "Group 1")) +
+        geom_boxplot(data = compare_filter_2(), aes(x = "Group 2", y = `Loan Amount`, color = "Group 2")) +
+        scale_y_log10()
+      )
+      ggplotly(p2)
+    })
+    
+    output$plot_action <- renderPlotly({
+      compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                                 compare_filter_2() %>% mutate(Group = "Group 2"))
+      
+      p3 <- ggplot() +
+        geom_bar(data = compare_filter_12, aes(y = `Action Taken`, fill = `Group`), position = 'dodge') +
+        scale_y_discrete(limits = rev)
+      #geom_bar(data = compare_filter_2(), aes(x = "Group 2", fill = `Action Taken`), position = 'dodge')
+      
+      ggplotly(p3)
+    })
+    
+    output$plot_4 <- renderPlotly({
+      
+      # compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+      #                            compare_filter_2() %>% mutate(Group = "Group 2"))
+      
+      #This first set of code creates a facet with one long legend
+      # compare_filter_12_long <- compare_filter_12 %>%
+      #                           pivot_longer(cols = c(`Derived Race`, `Derived Ethnicity`, `Derived Sex`, `Applicant Age`),
+      #                                        names_to = "Demographic Type",
+      #                                        values_to = "Demographic Value")
+      
+      
+      # p4 <- ggplot() +
+      #   geom_bar(data = compare_filter_12_long, aes(x = `Demographic Value`, fill = Group), position = 'dodge') +
+      #   facet_wrap(~`Demographic Type`, ncol = 1)
+      #
+      # ggplotly(p4, height = 760)
+      
+      # Let's use patchwork to make four separate plots (with their own legends) that then get patched together
+      compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                                 compare_filter_2() %>% mutate(Group = "Group 2"))
+      
+      ## Make each separate plot
+      p4race <- ggplot() +
+        geom_bar(data = compare_filter_12, aes(x = `Derived Race`, fill = `Group`), position = 'dodge')
+      figr <- ggplotly(p4race)
+      
+      p4ethnicity <- ggplot() +
+        geom_bar(data = compare_filter_12, aes(x = `Derived Ethnicity`, fill = `Group`), position = 'dodge') +
+        scale_fill_discrete(breaks = "none")
+      fige <- ggplotly(p4ethnicity, showlegend = FALSE)
+      
+      
+      p4sex <- ggplot() +
+        geom_bar(data = compare_filter_12, aes(x = `Derived Sex`, fill = `Group`), position = 'dodge') +
+        scale_fill_discrete(breaks = "none")
+      figs <- ggplotly(p4sex)
+      
+      
+      p4age <- ggplot() +
+        geom_bar(data = compare_filter_12, aes(x = `Applicant Age`, fill = `Group`), position = 'dodge') +
+        scale_fill_discrete(breaks = "none")
+      figa <- ggplotly(p4age)
+      
+      
+      ## Patch them together vertically
+      subplot(figr, fige, figs, figa, nrows = 4) %>% layout(height = 760)
+    })
+    
+    output$plot_race <- renderPlotly({
+      compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                                 compare_filter_2() %>% mutate(Group = "Group 2"))
+      
+      p4race <- ggplot() +
+        geom_bar(data = compare_filter_12, aes(x = Race, fill = `Group`), position = 'dodge')
+      figr <- ggplotly(p4race) %>% layout(legend = list(orientation = "h", xanchor = "right", yanchor = "top", x = 1, y = 1))
+    })
+    
+    output$plot_ethnicity <- renderPlotly({
+      compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                                 compare_filter_2() %>% mutate(Group = "Group 2"))
+      
+      p4ethnicity <- ggplot() +
+        geom_bar(data = compare_filter_12, aes(x = Ethnicity, fill = `Group`), position = 'dodge') +
+        theme(legend.position = "none")
+      figr <- ggplotly(p4ethnicity)
+    })
+    
+    output$plot_sex <- renderPlotly({
+      compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                                 compare_filter_2() %>% mutate(Group = "Group 2"))
+      
+      p4sex <- ggplot() +
+        geom_bar(data = compare_filter_12, aes(x = Sex, fill = `Group`), position = 'dodge') +
+        theme(legend.position = "none")
+      figr <- ggplotly(p4sex)
+    })
+    
+    output$plot_age <- renderPlotly({
+      compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                                 compare_filter_2() %>% mutate(Group = "Group 2"))
+      
+      p4age <- ggplot() +
+        geom_bar(data = compare_filter_12, aes(x = `Applicant Age`, fill = `Group`), position = 'dodge') +
+        theme(legend.position = "none")
+      figr <- ggplotly(p4age)
+    })
+    
   })
-  
-  output$plot_action <- renderPlotly({
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
-    
-    p3 <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(y = `Action Taken`, fill = `Group`), position = 'dodge') +
-      scale_y_discrete(limits = rev)
-    #geom_bar(data = compare_filter_2(), aes(x = "Group 2", fill = `Action Taken`), position = 'dodge')
-    
-    ggplotly(p3)
-  })
-  
-  output$plot_4 <- renderPlotly({
-    
-    # compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-    #                            compare_filter_2() %>% mutate(Group = "Group 2"))
-    
-    #This first set of code creates a facet with one long legend
-    # compare_filter_12_long <- compare_filter_12 %>%
-    #                           pivot_longer(cols = c(`Derived Race`, `Derived Ethnicity`, `Derived Sex`, `Applicant Age`),
-    #                                        names_to = "Demographic Type",
-    #                                        values_to = "Demographic Value")
-    
-    
-    # p4 <- ggplot() +
-    #   geom_bar(data = compare_filter_12_long, aes(x = `Demographic Value`, fill = Group), position = 'dodge') +
-    #   facet_wrap(~`Demographic Type`, ncol = 1)
-    # 
-    # ggplotly(p4, height = 760)
-    
-    # Let's use patchwork to make four separate plots (with their own legends) that then get patched together
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
-    
-    ## Make each separate plot
-    p4race <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = `Derived Race`, fill = `Group`), position = 'dodge')
-    figr <- ggplotly(p4race)
-    
-    p4ethnicity <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = `Derived Ethnicity`, fill = `Group`), position = 'dodge') +
-      scale_fill_discrete(breaks = "none")
-    fige <- ggplotly(p4ethnicity, showlegend = FALSE)
-    
-    
-    p4sex <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = `Derived Sex`, fill = `Group`), position = 'dodge') +
-      scale_fill_discrete(breaks = "none")
-    figs <- ggplotly(p4sex)
-    
-    
-    p4age <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = `Applicant Age`, fill = `Group`), position = 'dodge') +
-      scale_fill_discrete(breaks = "none")
-    figa <- ggplotly(p4age)
-    
-    
-    ## Patch them together vertically
-    subplot(figr, fige, figs, figa, nrows = 4) %>% layout(height = 760)
-  })
-  
-  output$plot_race <- renderPlotly({
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
-    
-    p4race <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = Race, fill = `Group`), position = 'dodge')
-    figr <- ggplotly(p4race) %>% layout(legend = list(orientation = "h", xanchor = "right", yanchor = "top", x = 1, y = 1))
-  })
-  
-  output$plot_ethnicity <- renderPlotly({
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
-    
-    p4ethnicity <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = Ethnicity, fill = `Group`), position = 'dodge') +
-      theme(legend.position = "none")
-    figr <- ggplotly(p4ethnicity)
-  })
-  
-  output$plot_sex <- renderPlotly({
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
-    
-    p4sex <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = Sex, fill = `Group`), position = 'dodge') +
-      theme(legend.position = "none")
-    figr <- ggplotly(p4sex)
-  })
-  
-  output$plot_age <- renderPlotly({
-    compare_filter_12 <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                               compare_filter_2() %>% mutate(Group = "Group 2"))
-    
-    p4age <- ggplot() +
-      geom_bar(data = compare_filter_12, aes(x = `Applicant Age`, fill = `Group`), position = 'dodge') +
-      theme(legend.position = "none")
-    figr <- ggplotly(p4age)
-  })
-  
+
   ### EXPORT TAB ###
   
   # HMDA data filter for export tab
