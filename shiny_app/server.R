@@ -31,17 +31,17 @@ shinyServer(function(input, output) {
   # Filter census data based on scope
   my_sf <- reactive({
     census_data %>%
-      filter(scope == rv$scope)
+      filter(scope == rv$scope) 
   })
   
   # Update choropleth based on scope
-  observeEvent(rv$scope, {
-    update_choropleth("mymap", my_sf())
+  observeEvent(c(rv$scope, input$chor_vars), {
+    update_choropleth("mymap", my_sf(), input$chor_vars)
   })
   
   # Update map legend based on scope
-  observeEvent(my_sf(), {
-    draw_map_legend("mymap", my_sf())
+  observeEvent(c(my_sf(), input$chor_vars), {
+    draw_map_legend("mymap", my_sf(), input$chor_vars)
   })
 
   # HMDA data filter for visualize tab

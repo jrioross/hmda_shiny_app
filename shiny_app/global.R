@@ -51,21 +51,20 @@ draw_base_map <- function() {
 pal <- colorNumeric(palette = "viridis", domain = NULL)
 
 
-
 # Update choropleth function
-update_choropleth <- function(mymap, census_data) {
+update_choropleth <- function(mymap, census_data, chor_vars) {
   
-#  census_data$label <- 
-#    paste0("<b>", census_data$NAME, "</b><br>",
-#           "Population: ", census_data$population) %>%
-#    lapply(htmltools::HTML)
-
+  #  census_data$label <- 
+  #    paste0("<b>", census_data$NAME, "</b><br>",
+  #           "Population: ", census_data$population) %>%
+  #    lapply(htmltools::HTML)
+  
   labels <- sprintf(
-    "<strong>%s</strong><br/>%g", census_data$NAME, census_data$population) %>% # second value should change with filter
+    "<strong>%s</strong><br/>%g", census_data$NAME, census_data[[chor_vars]]) %>% # second value should change with filter
     lapply(htmltools::HTML)
-    
+  
   leafletProxy(mymap, data = census_data) %>% 
-    clearShapes() %>%
+    clearShapes() %>% 
     addPolygons(
       data = census_data$geometry,
       group = "name",
@@ -73,27 +72,28 @@ update_choropleth <- function(mymap, census_data) {
       weight = 1,
       opacity = 1,
       color = "white",
-      fillOpacity = 0.6,
-      fillColor = pal(census_data$population),
-      label = labels, # switch back to census_data$population if labels doesn't work
+      fillOpacity = 0.7,
+      fillColor = pal(census_data[[chor_vars]]),
+      label = labels, 
+      layerId = census_data$NAME,
       # popup = popupGraph(census_data$plots),
       highlight = highlightOptions(
         weight = 3,
-        fillOpacity = 0.8,
+        fillOpacity = 0.9,
         color = "#666",
-        bringToFront = FALSE)
+        bringToFront = FALSE) 
     )
 }
 
 # Draw map legend function
-draw_map_legend <- function(mymap, census_data) {
+draw_map_legend <- function(mymap, census_data, chor_vars) {
   leafletProxy(mymap, data = census_data) %>%
     clearControls() %>%
     addLegend(
       "bottomleft",
       pal = pal, 
-      values = ~ population, # need to change with input
-      title = ~ "Population", # needs to change with input
+      values = census_data[[chor_vars]], # need to change with input
+      title = ~ str_to_title(chor_vars), # needs to change with input
       opacity = 1
     )
 }
