@@ -24,8 +24,88 @@ hmda_data <- hmda_data %>%
                summarize(`Annual Money Lent` = sum(`Loan Amount`))
   )
 
-# Choices for choropleth variable selectInput
-choro_variables <- variable.names(subset(census_data, select=-c(GEOID, NAME, scope, geometry)))
+hmda_groupby_state <- hmda_data %>%
+  group_by(GEOID = State) %>%
+  mutate(GEOID = "53") %>%
+  summarize('Number of Loan Applications' = n(), 'Median Interest Rate' = median(`Interest Rate`, na.rm = T),
+            'Median Loan Amount' = median(`Loan Amount`, na.rm = T),
+            'Median Loan Cost' = median(`Total Loan Costs`, na.rm = T),
+            'Median Total Points and Fees' = median(`Total Points and Fees`, na.rm = T),
+            'Median Origination Charges' = median(`Origination Charges`, na.rm = T),
+            'Median Loan Term' = median(`Loan Term`, na.rm = T),
+            'Median Property Value' = median(`Property Value`, na.rm = T),
+            'Median Debt-to-Income Ratio' = median(`Debt-to-Income Ratio`, na.rm = T))
+hmda_groupby_county <- hmda_data %>%
+  group_by(GEOID = County) %>%
+  summarize('Number of Loan Applications' = n(), 'Median Interest Rate' = median(`Interest Rate`, na.rm = T),
+            'Median Loan Amount' = median(`Loan Amount`, na.rm = T),
+            'Median Loan Cost' = median(`Total Loan Costs`, na.rm = T),
+            'Median Total Points and Fees' = median(`Total Points and Fees`, na.rm = T),
+            'Median Origination Charges' = median(`Origination Charges`, na.rm = T),
+            'Median Loan Term' = median(`Loan Term`, na.rm = T),
+            'Median Property Value' = median(`Property Value`, na.rm = T),
+            'Median Debt-to-Income Ratio' = median(`Debt-to-Income Ratio`, na.rm = T))
+hmda_groupby_tract <- hmda_data %>%
+  group_by(GEOID = `Census Tract`) %>%
+  summarize('Number of Loan Applications' = n(), 'Median Interest Rate' = median(`Interest Rate`, na.rm = T),
+            'Median Loan Amount' = median(`Loan Amount`, na.rm = T),
+            'Median Loan Cost' = median(`Total Loan Costs`, na.rm = T),
+            'Median Total Points and Fees' = median(`Total Points and Fees`, na.rm = T),
+            'Median Origination Charges' = median(`Origination Charges`, na.rm = T),
+            'Median Loan Term' = median(`Loan Term`, na.rm = T),
+            'Median Property Value' = median(`Property Value`, na.rm = T),
+            'Median Debt-to-Income Ratio' = median(`Debt-to-Income Ratio`, na.rm = T))
+hmda_census_data <- bind_rows(hmda_groupby_state, hmda_groupby_county, hmda_groupby_tract)
+census_data <- merge(census_data, hmda_census_data, by = "GEOID")
+choro_variables <- variable.names(subset(census_data, select=c("Population",
+                                                               "Number of Loan Applications",
+                                                               "Median Income",
+                                                               "Median Interest Rate",
+                                                               "Median Loan Amount",
+                                                               "Median Loan Cost",
+                                                               "Median Total Points and Fees",
+                                                               "Median Origination Charges",
+                                                               "Median Loan Term",
+                                                               "Median Property Value",
+                                                               "Median Debt-to-Income Ratio")))
+
+census_geoid_name <- census_data %>%
+  select(GEOID, NAME)
+
+hmda_geoid_state<- hmda_data %>%
+  mutate(GEOID = "53") %>%
+  inner_join(census_geoid_name)
+
+hmda_geoid_county <- hmda_data %>%
+  mutate(GEOID = County) %>%
+  inner_join(census_geoid_name)
+
+hmda_geoid_tract <- hmda_data %>%
+  mutate(GEOID = `Census Tract`) %>%
+  inner_join(census_geoid_name)
+
+hmda_geoid_name <- bind_rows(hmda_geoid_state, hmda_geoid_county, hmda_geoid_tract)
+
+hmda_race_data <- hmda_geoid_name %>%
+  group_by(NAME) %>%
+  count(Race, name = "Population") %>%
+  mutate(Group = "HMDA")
+
+levels(hmda_race_data$Race) <- c("Two Or More Races", 
+                                 "American Indian", 
+                                 "Asian", "Black", 
+                                 "Free Form Text Only", 
+                                 "Joint", 
+                                 "Pacific Islander", 
+                                 "Race Not Available", 
+                                 "White")
+
+census_race_data <- census_data %>%
+  gather(key = "Race", value = "Population", White, Black, `American Indian`, Asian, `Pacific Islander`, `Other Race`, `Two Or More Races`) %>%
+  mutate(Group = "Census") %>%
+  select(NAME, Race, Population, Group)
+
+hmda_census_race_data <- bind_rows(hmda_race_data, census_race_data)
 
 # Initialize leaflet map function
 draw_base_map <- function() {
@@ -57,7 +137,7 @@ update_choropleth <- function(mymap, census_data, chor_vars) {
     lapply(htmltools::HTML)
   
   leafletProxy(mymap, data = census_data) %>% 
-    clearShapes() %>%
+    clearShapes() %>% 
     addPolygons(
       data = census_data$geometry,
       layerId = census_data$NAME,
@@ -66,14 +146,14 @@ update_choropleth <- function(mymap, census_data, chor_vars) {
       weight = 1,
       opacity = 1,
       color = "white",
-      fillOpacity = 0.6,
-      fillColor = pal(census_data$population),
+      fillOpacity = 0.7,
+      fillColor = pal(census_data[[chor_vars]]),
       label = census_data$label,
       highlight = highlightOptions(
         weight = 3,
-        fillOpacity = 0.8,
+        fillOpacity = 0.9,
         color = "#666",
-        bringToFront = FALSE)
+        bringToFront = FALSE) 
     )
 }
 

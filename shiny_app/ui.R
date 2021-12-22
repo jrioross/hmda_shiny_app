@@ -109,7 +109,7 @@ shinyUI(
                    ),
                    tabPanel("Action Taken", plotlyOutput("plot_action")),
                    tabPanel("Loan Amounts", plotlyOutput("plot_amounts")),
-                   tabPanel("Denial Reasons"),
+                   tabPanel("Denial Reasons", plotlyOutput("plot_denial")),
                  ),
                  width = 6
                ),
