@@ -59,20 +59,35 @@ shinyServer(function(input, output) {
   
   observeEvent(input$mymap_shape_click, { 
     showModal(modalDialog(
-      plotOutput("census_plot_race"),
+      plotlyOutput("census_plot_race"),
       title = input$mymap_shape_click[1],
       fade = F,
+      size = "l",
       easyClose = T,
       footer = NULL
     ))
   })
   
-  output$census_plot_race <- renderPlot({
-    census_data %>%
+  output$census_plot_race <- renderPlotly({
+    p <- hmda_census_race_data %>%
       filter(NAME == input$mymap_shape_click[1]) %>%
-      select(NAME, white, black, `american indian`, asian, `pacific islander`, `other race`, `two or more races`) %>%
-      pivot_longer(!NAME, names_to = "Race", values_to = "Population") %>%
-      ggplot() + geom_col(aes(x = Race, y = Population))
+      group_by(Group) %>%
+      mutate(Proportion = Population/sum(Population)) %>%
+      filter(!(Race %in% c("Free Form Text Only", "Joint", "Other Race", "Race Not Available"))) %>%
+      ggplot(aes(x = str_wrap(Race, width = 17), 
+                 y = Proportion, 
+                 fill = Group,
+                 text = sprintf("Group: %s<br>Race: %s<br>Percent: %s",
+                                Group, Race, scales::percent(Proportion, scale = 100, accuracy = 0.01)
+                                )
+                 )
+             ) +
+      geom_col(position = 'dodge') +
+      scale_x_discrete(limits = rev) +
+      scale_y_continuous(labels = scales::percent) +
+      labs(title = "Proportion of Applicant Race by Comparison Group",
+           x = "Race")
+    ggplotly(p, tooltip = 'text')
   })
   
   ### COMPARE TAB ###
@@ -135,7 +150,8 @@ shinyServer(function(input, output) {
     output$plot_race <- renderPlotly({
       isolate(
         data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
-                      compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
+                      compare_filter_2() %>% setdiff(compare_filter_1()) %>% 
+                        mutate(Group = "Group 2")) %>%
           filter(Race != "Free Form Text Only") %>%
           count(Group, Race) %>%
           group_by(Group) %>%
@@ -234,6 +250,34 @@ shinyServer(function(input, output) {
         theme(legend.position = "none") +
         labs(title = "Proportion of Applicant Age by Comparison Group")
       figa <- ggplotly(p, tooltip = 'text')
+    })
+    
+    # Proportions of Denial Reasons by Filter Group
+    output$plot_denial <- renderPlotly({
+      isolate(
+        data <- rbind(compare_filter_1() %>% mutate(Group = "Group 1"),
+                      compare_filter_2() %>% setdiff(compare_filter_1()) %>% mutate(Group = "Group 2")) %>%
+          count(Group, `Denial Reason #1`) %>%
+          group_by(Group) %>%
+          mutate(Proportion = n/sum(n))
+      )
+      p <- ggplot(data = data, aes(x = str_wrap(`Denial Reason #1`, width = 10), 
+                                   y = Proportion, 
+                                   fill = Group, 
+                                   text = sprintf("Group: %s<br>Denial Reason: %s<br>Percent: %s",
+                                                  Group, 
+                                                  `Denial Reason #1`, 
+                                                  scales::percent(Proportion, scale = 100, accuracy = 0.01)
+                                   )
+      )
+      ) +
+        geom_col(position = 'dodge')+
+        scale_y_continuous(labels = scales::percent) +
+        theme(legend.position = "right") +
+        labs(title = "Proportion of Denial Reason by Comparison Group",
+             x = "Denial Reason")
+      
+      ggplotly(p, height = 600, tooltip = 'text')
     })
     
   })
